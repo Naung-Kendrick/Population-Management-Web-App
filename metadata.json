@@ -1,0 +1,5 @@
+{
+  "name": "PSLF/TNLA Immigration App",
+  "description": "An administrative dashboard for immigration data entry and visualization, featuring township-based filtering, daily entry forms, and statistical overviews.",
+  "requestFramePermissions": []
+}
