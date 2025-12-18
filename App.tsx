@@ -10,56 +10,31 @@ import {
   Search,
   Save,
   TrendingUp,
-  Activity
+  Activity,
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
+import { ImmigrationRecord, FormDataState } from './types';
 
-// --- TYPES ---
-interface ImmigrationRecord {
-  id: number;
-  date: string;
-  township: string;
-  household: number;
-  male: number;
-  female: number;
-  smart_card: number;
-  taang: number;
-  shan: number;
-  bamar: number;
-  revenue: number;
-}
+// --- CONSTANTS ---
+const TOWNSHIPS = ['နမ့်ဆန်', 'မန်တုံ', 'နမ့်ခမ်း', 'ကွတ်ခိုင်', 'မန်ပန်', 'ကျောက်မဲ'];
+const SMART_CARD_RATE = 10000; 
+const STORAGE_KEY = 'pslf_immigration_data_v1';
 
-interface FormDataState {
-  township: string;
-  date: string;
-  household: number | string;
-  male: number | string;
-  female: number | string;
-  smart_card: number | string;
-  taang: number | string;
-  shan: number | string;
-  bamar: number | string;
-}
-
-// --- MOCK DATA (ဒေတာအစမ်းများ) ---
+// --- MOCK DATA ---
 const INITIAL_RECORDS: ImmigrationRecord[] = [
   { id: 1, date: '2025-12-16', township: 'နမ့်ဆန်', household: 5, male: 12, female: 15, smart_card: 10, taang: 25, shan: 2, bamar: 0, revenue: 100000 },
   { id: 2, date: '2025-12-16', township: 'မန်တုံ', household: 3, male: 8, female: 9, smart_card: 5, taang: 10, shan: 7, bamar: 0, revenue: 50000 },
-  { id: 3, date: '2025-12-15', township: 'နမ့်ဆန်', household: 10, male: 25, female: 30, smart_card: 20, taang: 50, shan: 5, bamar: 0, revenue: 200000 },
 ];
-
-const TOWNSHIPS = ['နမ့်ဆန်', 'မန်တုံ', 'နမ့်ခမ်း', 'ကွတ်ခိုင်', 'မန်ပန်'];
-const SMART_CARD_RATE = 10000; // ၁ ကဒ်လျှင် ၁ သောင်းကျပ်
 
 // --- COMPONENTS ---
 
 const DataEntryForm = ({ 
-  records, 
-  setRecords, 
-  setActiveTab 
+  onAddRecord, 
+  onCancel 
 }: { 
-  records: ImmigrationRecord[], 
-  setRecords: React.Dispatch<React.SetStateAction<ImmigrationRecord[]>>, 
-  setActiveTab: (tab: string) => void 
+  onAddRecord: (record: ImmigrationRecord) => void,
+  onCancel: () => void
 }) => {
   const [formData, setFormData] = useState<FormDataState>({
     township: 'နမ့်ဆန်',
@@ -73,11 +48,9 @@ const DataEntryForm = ({
     bamar: 0
   });
 
-  // Auto Calculate Totals for Preview
-  const maleVal = typeof formData.male === 'string' ? (parseInt(formData.male) || 0) : formData.male;
-  const femaleVal = typeof formData.female === 'string' ? (parseInt(formData.female) || 0) : formData.female;
-  const smartCardVal = typeof formData.smart_card === 'string' ? (parseInt(formData.smart_card) || 0) : formData.smart_card;
-  
+  const maleVal = Number(formData.male) || 0;
+  const femaleVal = Number(formData.female) || 0;
+  const smartCardVal = Number(formData.smart_card) || 0;
   const totalPop = maleVal + femaleVal;
   const estimatedRevenue = smartCardVal * SMART_CARD_RATE;
 
@@ -87,206 +60,149 @@ const DataEntryForm = ({
       id: Date.now(),
       date: formData.date,
       township: formData.township,
-      household: typeof formData.household === 'string' ? parseInt(formData.household) || 0 : formData.household,
+      household: Number(formData.household) || 0,
       male: maleVal,
       female: femaleVal,
       smart_card: smartCardVal,
-      taang: typeof formData.taang === 'string' ? parseInt(formData.taang) || 0 : formData.taang,
-      shan: typeof formData.shan === 'string' ? parseInt(formData.shan) || 0 : formData.shan,
-      bamar: typeof formData.bamar === 'string' ? parseInt(formData.bamar) || 0 : formData.bamar,
+      taang: Number(formData.taang) || 0,
+      shan: Number(formData.shan) || 0,
+      bamar: Number(formData.bamar) || 0,
       revenue: estimatedRevenue
     };
-    setRecords([newRecord, ...records]);
-    alert("စာရင်းသိမ်းဆည်းပြီးပါပြီ (Saved Successfully)");
-    setActiveTab('records'); // Go to list view
+    onAddRecord(newRecord);
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
-      <h2 className="text-xl font-bold mb-6 text-slate-800 border-b pb-2 flex items-center">
-        <PlusCircle className="mr-2" /> နေ့စဉ်စာရင်းသွင်းရန် (Daily Entry)
-      </h2>
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* General Info */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-slate-600">အခြေခံအချက်အလက်များ</h3>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">ရက်စွဲ</label>
-            <input type="date" required 
-              value={formData.date}
-              onChange={e => setFormData({...formData, date: e.target.value})}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">မြို့နယ်</label>
-            <select 
-              value={formData.township}
-              onChange={e => setFormData({...formData, township: e.target.value})}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border"
-            >
-              {TOWNSHIPS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">အိမ်ထောင်စု အသစ်တိုး</label>
-            <input type="number" min="0" required
-              value={formData.household}
-              onChange={e => setFormData({...formData, household: e.target.value})}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border"
-            />
+    <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 animate-fade-in max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-8 border-b pb-4">
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+          <PlusCircle className="mr-3 text-blue-600" /> နေ့စဉ်စာရင်းသွင်းရန် (Daily Entry)
+        </h2>
+        <button onClick={onCancel} className="text-slate-400 hover:text-slate-600">မလုပ်တော့ပါ</button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-5">
+          <h3 className="font-bold text-blue-800 text-sm uppercase tracking-wider">အခြေခံအချက်အလက်</h3>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">ရက်စွဲ</label>
+              <input type="date" required value={formData.date}
+                onChange={e => setFormData({...formData, date: e.target.value})}
+                className="w-full rounded-lg border-slate-300 shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">မြို့နယ်</label>
+              <select value={formData.township}
+                onChange={e => setFormData({...formData, township: e.target.value})}
+                className="w-full rounded-lg border-slate-300 shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                {TOWNSHIPS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">အိမ်ထောင်စု အသစ်တိုး</label>
+              <input type="number" min="0" required value={formData.household}
+                onChange={e => setFormData({...formData, household: e.target.value})}
+                className="w-full rounded-lg border-slate-300 shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Population & Smart Card */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-slate-600">လူဦးရေ နှင့် Smart Card</h3>
+        <div className="space-y-5">
+          <h3 className="font-bold text-blue-800 text-sm uppercase tracking-wider">လူဦးရေ နှင့် Smart Card</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">ကျား</label>
-              <input type="number" min="0" required
-                value={formData.male}
+              <label className="block text-sm font-semibold text-slate-700 mb-1">ကျား</label>
+              <input type="number" min="0" required value={formData.male}
                 onChange={e => setFormData({...formData, male: e.target.value})}
-                className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border bg-blue-50"
+                className="w-full rounded-lg border-blue-200 shadow-sm p-3 border bg-blue-50 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">မ</label>
-              <input type="number" min="0" required
-                value={formData.female}
+              <label className="block text-sm font-semibold text-slate-700 mb-1">မ</label>
+              <input type="number" min="0" required value={formData.female}
                 onChange={e => setFormData({...formData, female: e.target.value})}
-                className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border bg-pink-50"
+                className="w-full rounded-lg border-pink-200 shadow-sm p-3 border bg-pink-50 focus:ring-2 focus:ring-pink-500 outline-none"
               />
             </div>
           </div>
-          
-          {/* Auto Calculated Display */}
-          <div className="bg-slate-100 p-3 rounded text-center">
-            <span className="text-sm text-slate-500">စုစုပေါင်း လူဦးရေ (System Auto)</span>
-            <div className="text-xl font-bold text-slate-800">{totalPop} ဦး</div>
+          <div className="bg-slate-900 p-4 rounded-lg flex justify-between items-center text-white">
+            <span className="text-sm font-medium opacity-80">စုစုပေါင်း လူဦးရေ</span>
+            <span className="text-2xl font-bold">{totalPop}</span>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-slate-700">Smart Card ပြီးစီးမှု</label>
-            <input type="number" min="0" required
-              value={formData.smart_card}
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Smart Card ပြီးစီးမှု</label>
+            <input type="number" min="0" required value={formData.smart_card}
               onChange={e => setFormData({...formData, smart_card: e.target.value})}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border bg-green-50"
+              className="w-full rounded-lg border-green-200 shadow-sm p-3 border bg-green-50 focus:ring-2 focus:ring-green-500 outline-none font-bold text-green-700"
             />
-            <p className="text-xs text-green-600 mt-1">ခန့်မှန်းဝင်ငွေ: {estimatedRevenue.toLocaleString()} ကျပ်</p>
-          </div>
-        </div>
-
-        {/* Ethnicity */}
-        <div className="md:col-span-2 border-t pt-4">
-          <h3 className="font-semibold text-slate-600 mb-3">လူမျိုးအလိုက် စာရင်း</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-700">တအာင်း</label>
-              <input type="number" min="0" 
-                value={formData.taang}
-                onChange={e => setFormData({...formData, taang: e.target.value})}
-                className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700">ရှမ်း</label>
-              <input type="number" min="0" 
-                value={formData.shan}
-                onChange={e => setFormData({...formData, shan: e.target.value})}
-                className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700">ဗမာ/အခြား</label>
-              <input type="number" min="0" 
-                value={formData.bamar}
-                onChange={e => setFormData({...formData, bamar: e.target.value})}
-                className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border"
-              />
+            <div className="flex justify-between mt-2 px-1">
+              <span className="text-xs text-slate-500">ရရှိဝင်ငွေခန့်မှန်း</span>
+              <span className="text-xs font-bold text-green-600">{estimatedRevenue.toLocaleString()} ကျပ်</span>
             </div>
           </div>
         </div>
 
-        <button type="submit" className="md:col-span-2 w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center font-bold">
-          <Save className="w-5 h-5 mr-2" /> စာရင်းသွင်းမည် (Save Report)
-        </button>
-      </form>
-    </div>
-  );
-};
-
-const RecordsList = ({ records }: { records: ImmigrationRecord[] }) => {
-  const [filterTownship, setFilterTownship] = useState('All');
-
-  const filteredRecords = filterTownship === 'All' 
-    ? records 
-    : records.filter(r => r.township === filterTownship);
-
-  return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-        <h2 className="font-bold text-slate-700 flex items-center">
-          <FileText className="w-5 h-5 mr-2" /> နေ့စဉ် စာရင်းများ
-        </h2>
-        <div className="flex items-center space-x-2">
-          <MapPin className="w-4 h-4 text-slate-500" />
-          <select 
-            value={filterTownship}
-            onChange={(e) => setFilterTownship(e.target.value)}
-            className="border-slate-300 border rounded text-sm p-1"
-          >
-            <option value="All">အားလုံး (All Townships)</option>
-            {TOWNSHIPS.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">ရက်စွဲ</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">မြို့နယ်</th>
-              <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">အိမ်ထောင်စု</th>
-              <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">လူဦးရေ (စုစုပေါင်း)</th>
-              <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Smart Card</th>
-              <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">ဝင်ငွေ</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-slate-200">
-            {filteredRecords.map((record) => (
-              <tr key={record.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">{record.date}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{record.township}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-slate-900">{record.household}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-blue-600 font-semibold">
-                  {record.male + record.female}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600 font-bold">
-                  {record.smart_card}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-slate-600">
-                  {record.revenue.toLocaleString()} Ks
-                </td>
-              </tr>
+        <div className="md:col-span-2 border-t pt-6">
+          <h3 className="font-bold text-slate-700 mb-4 text-sm uppercase">လူမျိုးအလိုက် စာရင်း</h3>
+          <div className="grid grid-cols-3 gap-6">
+            {['taang', 'shan', 'bamar'].map((race) => (
+              <div key={race}>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
+                  {race === 'taang' ? 'တအာင်း' : race === 'shan' ? 'ရှမ်း' : 'ဗမာ/အခြား'}
+                </label>
+                <input type="number" min="0" 
+                  value={(formData as any)[race]}
+                  onChange={e => setFormData({...formData, [race]: e.target.value})}
+                  className="w-full rounded-lg border-slate-200 p-3 border focus:border-blue-400 outline-none"
+                />
+              </div>
             ))}
-          </tbody>
-        </table>
-        {filteredRecords.length === 0 && (
-          <div className="p-8 text-center text-slate-500">ရှာဖွေမှုရလဒ် မရှိပါ။</div>
-        )}
-      </div>
+          </div>
+        </div>
+
+        <div className="md:col-span-2 flex gap-4 pt-4">
+          <button type="submit" className="flex-1 bg-blue-600 text-white py-4 px-6 rounded-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center font-bold shadow-lg shadow-blue-200">
+            <Save className="w-5 h-5 mr-3" /> စာရင်းသိမ်းဆည်းမည် (Save Report)
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [records, setRecords] = useState<ImmigrationRecord[]>(INITIAL_RECORDS);
-  const [userRole, setUserRole] = useState('admin'); // 'admin' or 'viewer'
+  const [records, setRecords] = useState<ImmigrationRecord[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterTownship, setFilterTownship] = useState('All');
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // --- DASHBOARD CALCULATION (အလိုအလျောက် တွက်ချက်ခြင်း) ---
+  // --- PERSISTENCE ---
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setRecords(JSON.parse(saved));
+      } catch (e) {
+        setRecords(INITIAL_RECORDS);
+      }
+    } else {
+      setRecords(INITIAL_RECORDS);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+  }, [records, isLoaded]);
+
+  // --- LOGIC ---
   const stats = useMemo(() => {
     return records.reduce((acc, curr) => {
       acc.total_household += curr.household;
@@ -297,152 +213,253 @@ export default function App() {
     }, { total_household: 0, total_pop: 0, total_smart_card: 0, total_revenue: 0 });
   }, [records]);
 
+  const filteredRecords = useMemo(() => {
+    return records.filter(r => {
+      const matchesSearch = r.township.toLowerCase().includes(searchTerm.toLowerCase()) || r.date.includes(searchTerm);
+      const matchesTownship = filterTownship === 'All' || r.township === filterTownship;
+      return matchesSearch && matchesTownship;
+    });
+  }, [records, searchTerm, filterTownship]);
+
+  const addRecord = (record: ImmigrationRecord) => {
+    setRecords([record, ...records]);
+    setActiveTab('records');
+  };
+
+  const deleteRecord = (id: number) => {
+    if (confirm('ဤစာရင်းကို ဖျက်ရန် သေချာပါသလား?')) {
+      setRecords(records.filter(r => r.id !== id));
+    }
+  };
+
+  if (!isLoaded) return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 text-slate-400">Loading...</div>;
+
   return (
-    <div className="flex h-screen bg-slate-100 font-sans">
+    <div className="flex h-screen bg-slate-50 font-sans">
       {/* Sidebar */}
-      <div className="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col">
-        <div className="p-6 border-b border-slate-700">
-          <h1 className="text-xl font-bold text-white">PSLF/TNLA</h1>
-          <p className="text-xs text-slate-400 mt-1">Immigration Department</p>
+      <aside className="w-64 bg-slate-900 text-white flex-shrink-0 hidden lg:flex flex-col shadow-2xl">
+        <div className="p-8 border-b border-slate-800">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-xl">P</div>
+            <div>
+              <h1 className="text-lg font-extrabold tracking-tight">PSLF/TNLA</h1>
+              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Immigration Dept.</p>
+            </div>
+          </div>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
-          >
+        
+        <nav className="flex-1 p-4 space-y-1 mt-4">
+          <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <LayoutDashboard className="w-5 h-5 mr-3" /> Dashboard
           </button>
-          <button 
-            onClick={() => setActiveTab('entry')}
-            className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'entry' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
-          >
+          <button onClick={() => setActiveTab('entry')} className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'entry' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <PlusCircle className="w-5 h-5 mr-3" /> Data Entry
           </button>
-          <button 
-            onClick={() => setActiveTab('records')}
-            className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'records' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
-          >
-            <FileText className="w-5 h-5 mr-3" /> စာရင်းများ (Records)
+          <button onClick={() => setActiveTab('records')} className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'records' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <FileText className="w-5 h-5 mr-3" /> စာရင်းမှတ်တမ်း
           </button>
         </nav>
-        <div className="p-4 border-t border-slate-700">
-          <div className="flex items-center space-x-3 text-sm text-slate-300 mb-4">
-             <div className="w-2 h-2 rounded-full bg-green-500"></div>
-             <span>Admin User</span>
+
+        <div className="p-4 border-t border-slate-800 bg-slate-950/50">
+          <div className="flex items-center p-2 mb-4 space-x-3">
+            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">AD</div>
+            <div className="flex-1">
+              <p className="text-xs font-bold">Admin User</p>
+              <p className="text-[10px] text-green-500 flex items-center"><CheckCircle2 className="w-2 h-2 mr-1"/> Online</p>
+            </div>
           </div>
-          <button className="flex items-center text-slate-400 hover:text-white text-sm">
+          <button className="w-full flex items-center p-2 text-slate-500 hover:text-red-400 text-sm transition-colors">
             <LogOut className="w-4 h-4 mr-2" /> ထွက်ရန် (Logout)
           </button>
         </div>
-      </div>
+      </aside>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <header className="bg-white shadow-sm p-4 md:hidden flex justify-between items-center">
-             <span className="font-bold">Immigration App</span>
-             {/* Mobile Menu Toggle would go here */}
+      <div className="flex-1 overflow-auto flex flex-col">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-slate-200 px-6 py-4 flex justify-between items-center lg:justify-end">
+          <div className="lg:hidden font-bold text-slate-800 flex items-center">
+            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white mr-2">P</div>
+            PSLF/TNLA
+          </div>
+          <div className="flex items-center space-x-4">
+             <div className="hidden sm:flex items-center text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
+               <Activity className="w-3 h-3 mr-1.5 text-blue-500"/> System Active
+             </div>
+             <div className="text-sm font-bold text-slate-700">{new Date().toLocaleDateString('my-MM', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          </div>
         </header>
 
-        <main className="p-6">
-          
-          {/* Dashboard View */}
+        <main className="p-6 max-w-7xl mx-auto w-full">
           {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-slate-800">အနှစ်ချုပ် စာရင်းများ (Dashboard)</h2>
+            <div className="space-y-8 animate-fade-in">
+              <div>
+                <h2 className="text-3xl font-extrabold text-slate-800">Dashboard အနှစ်ချုပ်</h2>
+                <p className="text-slate-500 mt-1 font-medium">နောက်ဆုံးရ ဒေတာများကို တစ်နေရာတည်းတွင် ကြည့်ရှုပါ</p>
+              </div>
               
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">စုစုပေါင်း လူဦးရေ</p>
-                      <h3 className="text-3xl font-bold text-slate-800 mt-2">{stats.total_pop.toLocaleString()}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { label: 'စုစုပေါင်း လူဦးရေ', val: stats.total_pop, icon: Users, color: 'blue' },
+                  { label: 'Smart Card ပြီးစီးမှု', val: stats.total_smart_card, icon: CreditCard, color: 'green' },
+                  { label: 'အိမ်ထောင်စုစာရင်း', val: stats.total_household, icon: FileText, color: 'purple' },
+                  { label: 'စုစုပေါင်း ဝင်ငွေ', val: `${stats.total_revenue.toLocaleString()} Ks`, icon: TrendingUp, color: 'orange' },
+                ].map((stat, i) => (
+                  <div key={i} className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group`}>
+                    <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 bg-${stat.color}-50 rounded-full opacity-50 group-hover:scale-110 transition-transform`}></div>
+                    <div className="relative">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                      <h3 className="text-3xl font-black text-slate-800 mt-2">{stat.val}</h3>
                     </div>
-                    <Users className="text-blue-500 bg-blue-100 p-2 rounded-lg w-10 h-10" />
+                    <stat.icon className={`text-${stat.color}-600 absolute bottom-6 right-6 w-8 h-8 opacity-40`} />
                   </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">Smart Card ပြီးစီးမှု</p>
-                      <h3 className="text-3xl font-bold text-slate-800 mt-2">{stats.total_smart_card.toLocaleString()}</h3>
-                    </div>
-                    <CreditCard className="text-green-500 bg-green-100 p-2 rounded-lg w-10 h-10" />
-                  </div>
-                  <div className="mt-2 text-xs text-green-600 font-medium">
-                    +15 ယနေ့တိုး
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-purple-500">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">အိမ်ထောင်စုစာရင်း</p>
-                      <h3 className="text-3xl font-bold text-slate-800 mt-2">{stats.total_household.toLocaleString()}</h3>
-                    </div>
-                    <FileText className="text-purple-500 bg-purple-100 p-2 rounded-lg w-10 h-10" />
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-orange-500">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">ရရှိဝင်ငွေ (Total Revenue)</p>
-                      <h3 className="text-2xl font-bold text-slate-800 mt-2">{stats.total_revenue.toLocaleString()} Ks</h3>
-                    </div>
-                    <TrendingUp className="text-orange-500 bg-orange-100 p-2 rounded-lg w-10 h-10" />
-                  </div>
-                </div>
+                ))}
               </div>
 
-              {/* Charts Area (Visual Mockup) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <div className="bg-white p-6 rounded-lg shadow-sm">
-                    <h3 className="font-bold text-slate-700 mb-4 flex items-center">
-                      <Activity className="w-5 h-5 mr-2 text-blue-500"/> လူဦးရေသိပ်သည်းမှု (မြို့နယ်အလိုက်)
-                    </h3>
-                    <div className="h-64 flex items-end justify-between space-x-2 px-4 border-b border-l border-slate-200 pb-2">
-                       {/* Simple CSS Bar Chart */}
-                       {['နမ့်ဆန်', 'မန်တုံ', 'နမ့်ခမ်း', 'ကွတ်ခိုင်'].map((town, idx) => (
-                         <div key={town} className="flex flex-col items-center w-full group">
-                            <div className="relative w-full flex justify-center">
-                                <span className="absolute -top-6 text-xs font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {idx === 0 ? '45%' : idx === 1 ? '30%' : '15%'}
-                                </span>
-                                <div 
-                                    className={`w-10 rounded-t-md hover:opacity-80 transition-all cursor-pointer ${idx === 0 ? 'bg-blue-600 h-40' : idx === 1 ? 'bg-blue-400 h-24' : 'bg-blue-300 h-16'}`}
-                                ></div>
-                            </div>
-                            <span className="text-xs text-slate-500 mt-2">{town}</span>
-                         </div>
-                       ))}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                 <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-center mb-8">
+                      <h3 className="font-extrabold text-slate-800 text-lg flex items-center">
+                        <Activity className="w-5 h-5 mr-2 text-blue-600"/> မြို့နယ်အလိုက် နှိုင်းယှဉ်ချက်
+                      </h3>
+                      <div className="flex space-x-2 text-[10px] font-bold text-slate-400">
+                        <span className="flex items-center"><div className="w-2 h-2 bg-blue-600 rounded-full mr-1"></div> လူဦးရေ</span>
+                      </div>
+                    </div>
+                    <div className="h-72 flex items-end justify-between space-x-4 border-b border-slate-100 pb-2 px-4">
+                       {TOWNSHIPS.slice(0, 5).map((town, idx) => {
+                         const count = records.filter(r => r.township === town).reduce((a, b) => a + (b.male + b.female), 0);
+                         const maxCount = Math.max(...TOWNSHIPS.map(t => records.filter(r => r.township === t).reduce((a, b) => a + (b.male + b.female), 0)), 1);
+                         const heightPercent = (count / maxCount) * 100;
+                         return (
+                           <div key={town} className="flex flex-col items-center flex-1 group">
+                              <div className="relative w-full flex justify-center">
+                                  <div className="absolute -top-10 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
+                                      {count.toLocaleString()} ဦး
+                                  </div>
+                                  <div 
+                                      style={{ height: `${Math.max(heightPercent, 5)}%` }}
+                                      className="w-12 bg-blue-600 rounded-t-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-blue-100"
+                                  ></div>
+                              </div>
+                              <span className="text-[11px] font-bold text-slate-500 mt-4 rotate-[-45deg] lg:rotate-0 truncate w-full text-center">{town}</span>
+                           </div>
+                         );
+                       })}
                     </div>
                  </div>
 
-                 <div className="bg-white p-6 rounded-lg shadow-sm">
-                    <h3 className="font-bold text-slate-700 mb-4">ပြီးခဲ့သော ၇ ရက်အတွင်း လုပ်ဆောင်ချက်များ</h3>
-                    <RecordsList records={records} />
+                 <div className="bg-slate-900 p-8 rounded-2xl text-white shadow-xl shadow-slate-200 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold mb-4">အမြန်လုပ်ဆောင်ရန်</h3>
+                      <p className="text-slate-400 text-sm mb-6">နေ့စဉ် စာရင်းအသစ်များအား ဤနေရာမှ တိုက်ရိုက်ထည့်သွင်းနိုင်ပါသည်။</p>
+                      <button onClick={() => setActiveTab('entry')} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-blue-900">
+                        <PlusCircle className="w-5 h-5 mr-3" /> ဒေတာအသစ်ထည့်ရန်
+                      </button>
+                    </div>
+                    <div className="mt-8 pt-8 border-t border-slate-800">
+                       <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-400">ယနေ့ ပြီးစီးမှု</span>
+                          <span className="font-bold">75%</span>
+                       </div>
+                       <div className="w-full h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
+                          <div className="h-full bg-blue-500 w-3/4 rounded-full"></div>
+                       </div>
+                    </div>
                  </div>
               </div>
             </div>
           )}
 
-          {/* Data Entry View */}
           {activeTab === 'entry' && (
-            <div className="animate-fade-in">
-              <DataEntryForm records={records} setRecords={setRecords} setActiveTab={setActiveTab} />
-            </div>
+             <DataEntryForm onAddRecord={addRecord} onCancel={() => setActiveTab('dashboard')} />
           )}
 
-          {/* Records List View */}
           {activeTab === 'records' && (
-             <div className="animate-fade-in space-y-4">
-               <h2 className="text-2xl font-bold text-slate-800">စာရင်းမှတ်တမ်းများ (All Records)</h2>
-               <RecordsList records={records} />
+             <div className="animate-fade-in space-y-6">
+               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="text-3xl font-extrabold text-slate-800">စာရင်းမှတ်တမ်းများ</h2>
+                    <p className="text-slate-500 font-medium">ထည့်သွင်းထားသော ဒေတာများအားလုံးအား စီစစ်ကြည့်ရှုနိုင်သည်</p>
+                  </div>
+                  <button onClick={() => setActiveTab('entry')} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold flex items-center shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+                    <PlusCircle className="w-5 h-5 mr-2" /> အသစ်ထည့်ရန်
+                  </button>
+               </div>
+
+               <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <input 
+                      type="text" 
+                      placeholder="ရက်စွဲ သို့မဟုတ် မြို့နယ်ဖြင့် ရှာဖွေရန်..." 
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border border-transparent transition-all"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="text-slate-400 w-5 h-5" />
+                    <select 
+                      value={filterTownship}
+                      onChange={(e) => setFilterTownship(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="All">မြို့နယ်အားလုံး</option>
+                      {TOWNSHIPS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+               </div>
+
+               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100">
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">ရက်စွဲ</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">မြို့နယ်</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">အိမ်ထောင်စု</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">လူဦးရေ</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Smart Card</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">ဝင်ငွေ</th>
+                          <th className="px-6 py-4 text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {filteredRecords.map((r) => (
+                          <tr key={r.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-6 py-4 text-sm font-bold text-slate-600">{r.date}</td>
+                            <td className="px-6 py-4"><span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{r.township}</span></td>
+                            <td className="px-6 py-4 text-right font-medium text-slate-700">{r.household}</td>
+                            <td className="px-6 py-4 text-right">
+                               <div className="flex flex-col items-end">
+                                 <span className="font-bold text-slate-900">{r.male + r.female}</span>
+                                 <span className="text-[10px] text-slate-400">ကျား: {r.male} / မ: {r.female}</span>
+                               </div>
+                            </td>
+                            <td className="px-6 py-4 text-right font-black text-green-600">{r.smart_card}</td>
+                            <td className="px-6 py-4 text-right text-sm font-bold text-slate-500">{r.revenue.toLocaleString()} Ks</td>
+                            <td className="px-6 py-4 text-center">
+                               <button 
+                                 onClick={() => deleteRecord(r.id)}
+                                 className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                               >
+                                 <Trash2 className="w-4 h-4" />
+                               </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {filteredRecords.length === 0 && (
+                      <div className="p-20 text-center flex flex-col items-center">
+                        <Search className="w-12 h-12 text-slate-200 mb-4" />
+                        <p className="text-slate-400 font-bold">ရှာဖွေမှုရလဒ် မရှိသေးပါ။</p>
+                      </div>
+                    )}
+                 </div>
+               </div>
              </div>
           )}
-
         </main>
       </div>
     </div>
